@@ -69,8 +69,6 @@ public class DeviceControlActivity extends Activity {
             new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
     private boolean mConnected = false;
     private BluetoothGattCharacteristic mNotifyCharacteristic;
-    private BluetoothGattCharacteristic mCharacteristicToRead;
-    private String data;
 
     private final String LIST_NAME = "NAME";
     private final String LIST_UUID = "UUID";
@@ -105,7 +103,6 @@ public class DeviceControlActivity extends Activity {
         @Override
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
-            data = intent.getStringExtra(BluetoothLeService.EXTRA_DATA);
             if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
                 mConnected = true;
                 updateConnectionState(R.string.connected);
@@ -119,9 +116,8 @@ public class DeviceControlActivity extends Activity {
                 // Show all the supported services and characteristics on the user interface.
                 displayGattServices(mBluetoothLeService.getSupportedGattServices());
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
-                displayData(data);
+                displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
                 showNotification();
-
             }
         }
     };
@@ -154,7 +150,6 @@ public class DeviceControlActivity extends Activity {
                             mBluetoothLeService.setCharacteristicNotification(
                                     characteristic, true);
                         }
-                        mCharacteristicToRead = characteristic;
                         return true;
                     }
                     return false;
@@ -176,7 +171,7 @@ public class DeviceControlActivity extends Activity {
         mDeviceAddress = intent.getStringExtra(EXTRAS_DEVICE_ADDRESS);
 
         // Sets up UI references.
-       // ((TextView) findViewById(R.id.device_address)).setText(mDeviceAddress);
+        // ((TextView) findViewById(R.id.device_address)).setText(mDeviceAddress);
         mGattServicesList = (ExpandableListView) findViewById(R.id.gatt_services_list);
         mGattServicesList.setOnChildClickListener(servicesListClickListner);
         mConnectionState = (TextView) findViewById(R.id.connection_state);
@@ -209,7 +204,6 @@ public class DeviceControlActivity extends Activity {
         super.onDestroy();
         unbindService(mServiceConnection);
         mBluetoothLeService = null;
-        mCharacteristicToRead = null;
     }
 
     @Override
@@ -275,7 +269,7 @@ public class DeviceControlActivity extends Activity {
             uuid = gattService.getUuid().toString();
             currentServiceData.put(
                     LIST_NAME, SampleGattAttributes.lookup(uuid, unknownServiceString));
-           // currentServiceData.put(LIST_UUID, uuid);
+            //currentServiceData.put(LIST_UUID, uuid);
             gattServiceData.add(currentServiceData);
 
             ArrayList<HashMap<String, String>> gattCharacteristicGroupData =
@@ -292,7 +286,7 @@ public class DeviceControlActivity extends Activity {
                 uuid = gattCharacteristic.getUuid().toString();
                 currentCharaData.put(
                         LIST_NAME, SampleGattAttributes.lookup(uuid, unknownCharaString));
-              // currentCharaData.put(LIST_UUID, uuid);
+                // currentCharaData.put(LIST_UUID, uuid);
                 gattCharacteristicGroupData.add(currentCharaData);
             }
             mGattCharacteristics.add(charas);
@@ -325,7 +319,7 @@ public class DeviceControlActivity extends Activity {
     public void onCheckboxClicked(View view)
     {
         boolean checked = ((CheckBox)view).isChecked();
-
+        final Intent intent = getIntent();
         switch(view.getId())
         {
             case R.id.checkBox:
@@ -335,11 +329,8 @@ public class DeviceControlActivity extends Activity {
                     mHandler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-
-                            mBluetoothLeService.readCharacteristic(mCharacteristicToRead);
-                            displayData(data);
+                            displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
                             showNotification();
-
 
                         }
 
@@ -349,8 +340,8 @@ public class DeviceControlActivity extends Activity {
                 }
 
                 else
-                 //
-                break;
+                    //
+                    break;
             case R.id.checkBox2:
                 if(checked){
                     final int time = 20000;
@@ -359,10 +350,8 @@ public class DeviceControlActivity extends Activity {
                         @Override
                         public void run() {
 
-                            mBluetoothLeService.readCharacteristic(mCharacteristicToRead);
-                            displayData(data);
+                            displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
                             showNotification();
-
                         }
 
                     },time);
@@ -372,7 +361,7 @@ public class DeviceControlActivity extends Activity {
 
                 else
 
-                break;
+                    break;
             case R.id.checkBox3:
                 if(checked){
                     final int time = 30000;
@@ -381,10 +370,8 @@ public class DeviceControlActivity extends Activity {
                         @Override
                         public void run() {
 
-                            mBluetoothLeService.readCharacteristic(mCharacteristicToRead);
-                            displayData(data);
+                            displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
                             showNotification();
-
                         }
 
                     },time);
@@ -393,19 +380,18 @@ public class DeviceControlActivity extends Activity {
                 }
 
                 else
-                break;
+                    break;
         }
     }
 
     public void showNotification() {
         PendingIntent pi = PendingIntent.getActivity(this, 0, new Intent(this, DeviceControlActivity.class), 0);
-        Intent i = getIntent();
         Resources r = getResources();
         Notification notif = new NotificationCompat.Builder(this)
                 .setTicker(r.getString(R.string.notification_title))
                 .setSmallIcon(android.R.drawable.ic_menu_report_image)
                 .setContentTitle(r.getString(R.string.notification_title))
-                .setContentText(data)
+                .setContentText(r.getString(R.string.notification_text))
                 .setContentIntent(pi)
                 .setAutoCancel(true)
                 .build();
